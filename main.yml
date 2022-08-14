@@ -398,18 +398,6 @@ Resources:
         - !Ref PrivateSubnet01
         - !Ref PrivateSubnet02
 
-  # OIDCProvider:
-  #   Type: AWS::IAM::OIDCProvider
-  #   Properties:
-  #     Url: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
-  #     ThumbprintList:
-  #       -
-  #     ClientIdList:
-  #       - sts.amazonaws.com
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub '${AWS::StackName}-OIDC-Provider'
-
 Outputs:
 
   SubnetIds:
