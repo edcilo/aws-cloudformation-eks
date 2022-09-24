@@ -66,6 +66,68 @@ Parameters:
     Type: Number
     Default: 3
 
+  SQLDBInstanceId:
+    Type: String
+
+  SQLDBInstance:
+    Type: String
+    Default: db.t3.micro
+
+  SQLPubliclyAccessible:
+    Type: String
+    Default: "false"
+    Description: Indicates whether the DB instance is an internet-facing instance
+    AllowedValues:
+      - "true"
+      - "false"
+
+  SQLDBStorage:
+    Type: Number
+    Default: 20
+    Description: The size of the database (GiB)
+    MinValue: 20
+    MaxValue: 65536
+
+  SQLDBEngine:
+    Type: String
+    Default: postgres
+    AllowedValues:
+      - aurora
+      - aurora-mysql
+      - aurora-postgresql
+      - mariadb
+      - mysql
+      - oracle-ee
+      - oracle-ee-cdb
+      - oracle-se2
+      - oracle-se2-cdb
+      - postgres
+      - sqlserver-ee
+      - sqlserver-se
+      - sqlserver-ex
+      - sqlserver-web
+
+  SQLDBEngineVersion:
+    Type: String
+    Default: 14.3
+
+  SQLDBPort:
+    Type: Number
+    Default: 5432
+
+  SQLDBName:
+    Type: String
+    Default: mydb
+
+  SQLDBUsername:
+    Type: String
+    NoEcho: true
+
+  SQLDBPassword:
+    Type: String
+    NoEcho: true
+
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -93,9 +155,24 @@ Metadata:
           - NodesGroupMinSize
           - NodesGroupDesiredSize
           - NodesGroupMaxSize
+      -
+        Label:
+          default: "SQL Database"
+        Parameters:
+          - SQLDBInstanceId
+          - SQLDBInstance
+          - SQLPubliclyAccessible
+          - SQLDBStorage
+          - SQLDBEngine
+          - SQLDBEngineVersion
+          - SQLDBPort
+          - SQLDBName
+          - SQLDBUsername
+          - SQLDBPassword
 
 Resources:
 
+  # --- Network
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -319,6 +396,7 @@ Resources:
       SubnetId: !Ref PrivateSubnet02
       RouteTableId: !Ref PrivateRouteTable02
 
+  # --- EKS
   ControlPlaneSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -397,6 +475,58 @@ Resources:
       Subnets:
         - !Ref PrivateSubnet01
         - !Ref PrivateSubnet02
+
+  # --- DB
+  SQLVPCSecurityGroup:
+    Type: AWS::EC2::SecurityGroup 
+    Properties:
+      GroupDescription: "Instance to RDS Access"
+      GroupName: !Sub '${AWS::StackName}-RDSVPC-Secutiry-Group' 
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+
+  SQLSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "RDS Subnet Group for RDS"
+      DBSubnetGroupName: !Sub '${AWS::StackName}-Subnet-Group'
+      SubnetIds:
+        - !Ref PrivateSubnet01
+        - !Ref PrivateSubnet02
+
+  SQLDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref SQLDBInstanceId
+      DBInstanceClass: !Ref SQLDBInstance
+      StorageType: gp2 # general purpose SSD
+      MultiAZ: false
+      AllocatedStorage: !Ref SQLDBStorage
+      Engine: !Ref SQLDBEngine
+      EngineVersion: !Ref SQLDBEngineVersion
+      PreferredBackupWindow: "03:00-03:30"
+      BackupRetentionPeriod: 1
+      DeleteAutomatedBackups: true
+      DeletionProtection: false
+      DBName: !Ref SQLDBName
+      Port: !Ref SQLDBPort
+      MasterUsername: !Ref SQLDBUsername
+      MasterUserPassword: !Ref SQLDBPassword
+      AutoMinorVersionUpgrade: true
+      PubliclyAccessible: !Ref SQLPubliclyAccessible
+      VPCSecurityGroups:
+        - !Ref SQLVPCSecurityGroup
+      DBSubnetGroupName: !Ref SQLSubnetGroup
+      # DBSecurityGroups:
+      # AvailabilityZone: 
+      # AssociatedRoles
+      # MonitoringInterval: 60
+      # MonitoringRoleArn:
+      # EnableIAMDatabaseAuthentication:
 
 Outputs:
 
