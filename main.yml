@@ -8,7 +8,7 @@ Parameters:
 
   K8sVersion:
     Type: Number
-    Default: 1.23
+    Default: 1.24
     Description: The kubernetes version
 
   VpcBlock:
@@ -38,7 +38,7 @@ Parameters:
 
   NodeInstanceType:
     Type: String
-    Default: t2.small
+    Default: t2.medium
 
   NodeAmiType:
     Type: String
@@ -52,8 +52,8 @@ Parameters:
 
   NodeDiskSize:
     Type: Number
-    Default: 20
-  
+    Default: 40
+
   NodesGroupMinSize:
     Type: Number
     Default: 1
@@ -457,6 +457,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
 
   NodeGroup:
     Type: AWS::EKS::Nodegroup
